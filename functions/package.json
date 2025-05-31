@@ -1,0 +1,32 @@
+{
+  "name": "kingdoms-forge-functions",
+  "version": "1.0.0",
+  "description": "Cloud Functions for The Kingdom's Forge",
+  "main": "lib/index.js", // Output from TypeScript compilation
+  "scripts": {
+    "lint": "eslint --ext .js,.ts .",
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions,firestore,hosting",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18" // Or your chosen Node.js version
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0", // Use latest stable
+    "firebase-functions": "^5.0.0", // Use latest stable
+    "ethers": "^6.11.1" // For blockchain interactions by the Oracle
+    // TODO: Add any other dependencies your core algorithm services might need (e.g., for image processing if you add that later, specific data libraries)
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3", // Use latest stable
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.18.0",
+    "@typescript-eslint/parser": "^6.18.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
