@@ -1,0 +1,178 @@
+// frontend_forge_ui/src/pages/ForgePage.jsx
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ethers } from 'ethers';
+
+// --- Assume these are properly set up and imported ---
+// import { useRoninWallet } from '../contexts/RoninWalletContext'; // Conceptual global context
+// import { forgeContractService } from '../services/forgeService'; // Calls to TheKingdomsForge.sol
+// import { nftService } from '../services/nftService'; // For fetching user NFTs & their metadata
+// import { NXS_TOKEN_ADDRESS, FORGE_CONTRACT_ADDRESS, NXS_TOKEN_ABI, FORGE_CONTRACT_ABI, NXS_DECIMALS, NXS_FEE_TIERS_CONFIG } from '../config';
+// import NftSelectorModal from '../components/forge_ui/NftSelectorModal';
+// import PriorityTraitModal from '../components/forge_ui/PriorityTraitModal';
+// import GlobalMessageDisplay from '../components/common/GlobalMessageDisplay';
+
+// --- MOCK/CONCEPTUAL HOOK & SERVICES FOR THIS EXAMPLE (as in turn 82) ---
+const NXS_TOKEN_ADDRESS = "YOUR_NXS_TOKEN_ADDRESS_HERE";
+const FORGE_CONTRACT_ADDRESS = "YOUR_THE_KINGDOMS_FORGE_CONTRACT_ADDRESS_HERE";
+const NXS_TOKEN_ABI = [ /* ... */ ];
+const FORGE_CONTRACT_ABI = [ /* ... */ ];
+const NXS_DECIMALS = 18;
+const MAX_INPUT_NFTS_FORGE = 2; // Exactly 2 parents
+
+const NXS_FEE_TIERS = { // These should match contract/backend config
+    STANDARD: { label: "STANDARD", minNxs: ethers.parseUnits("10", NXS_DECIMALS), effect: "Base rarity chance. Standard priority focus.", multiplier: 1.0 },
+    ENHANCED: { label: "ENHANCED", minNxs: ethers.parseUnits("50", NXS_DECIMALS), effect: "Improved rarity. Enhanced priority focus.", multiplier: 1.2 },
+    PRIME: { label: "PRIME", minNxs: ethers.parseUnits("100", NXS_DECIMALS), effect: "High rarity chance. Strong priority focus.", multiplier: 1.5 },
+    APEX: { label: "APEX", minNxs: ethers.parseUnits("250", NXS_DECIMALS), effect: "Maximized rarity. Apex priority focus.", multiplier: 2.0 },
+};
+
+const truncateAddress = (addr) => addr ? `${addr.substring(0,6)}...${addr.substring(addr.length-4)}` : "";
+
+// --- Main ForgePage Component (Feature-Rich) ---
+function ForgePage() {
+    // const { provider, signer, address: connectedAddress, nxsBalance, connectWallet, network } = useRoninWallet(); // From Context
+    // Mocking for this example:
+    const [signer, setSigner] = useState(null);
+    const [connectedAddress, setConnectedAddress] = useState(null);
+    const [nxsBalance, setNxsBalance] = useState(ethers.parseUnits("500", NXS_DECIMALS));
+    const connectWallet = async () => { console.log("Connect Wallet clicked"); setConnectedAddress("0xUserAddress123"); setSigner({}); /* TODO */ };
+
+    const [inputNfts, setInputNfts] = useState(Array(MAX_INPUT_NFTS_FORGE).fill(null));
+    const [nxsCommittedUiAmount, setNxsCommittedUiAmount] = useState(ethers.formatUnits(NXS_FEE_TIERS.STANDARD.minNxs, NXS_DECIMALS));
+    const [nxsCommittedBigInt, setNxsCommittedBigInt] = useState(NXS_FEE_TIERS.STANDARD.minNxs);
+    const [currentNxsTier, setCurrentNxsTier] = useState(NXS_FEE_TIERS.STANDARD);
+    const [selectedPriorityTrait, setSelectedPriorityTrait] = useState(null);
+
+    const [nxsAllowance, setNxsAllowance] = useState(ethers.parseUnits("0", NXS_DECIMALS));
+    const [isLoading, setIsLoading] = useState(false);
+    const [status, setStatus] = useState({ message: "", type: "", txHash: null }); // type: 'info', 'success', 'error', 'loading'
+
+    const [isNftSelectorOpen, setIsNftSelectorOpen] = useState(false);
+    const [activeSlotIndex, setActiveSlotIndex] = useState(null);
+    const [isPrioritySelectorOpen, setIsPrioritySelectorOpen] = useState(false);
+    const [userOwnedNftsForModal, setUserOwnedNftsForModal] = useState([]);
+    const [estimatedOutputTier, setEstimatedOutputTier] = useState("Select Inputs & NXS");
+    const [estimatedGas, setEstimatedGas] = useState("N/A");
+
+    // --- Effects ---
+    useEffect(() => {
+        if (signer && connectedAddress) {
+            // TODO: Fetch NXS Balance and Allowance from actual roninService
+            // roninService.getNxsAllowance(connectedAddress, FORGE_CONTRACT_ADDRESS, signer).then(setNxsAllowance);
+            // roninService.getNxsBalance(connectedAddress, signer).then(setNxsBalance);
+             console.log("TODO: Fetch NXS Allowance & Balance on connect");
+        }
+    }, [signer, connectedAddress]);
+
+    useEffect(() => {
+        let activeTier = NXS_FEE_TIERS.STANDARD;
+        if (nxsCommittedBigInt >= NXS_FEE_TIERS.APEX.minNxs) activeTier = NXS_FEE_TIERS.APEX;
+        else if (nxsCommittedBigInt >= NXS_FEE_TIERS.PRIME.minNxs) activeTier = NXS_FEE_TIERS.PRIME;
+        else if (nxsCommittedBigInt >= NXS_FEE_TIERS.ENHANCED.minNxs) activeTier = NXS_FEE_TIERS.ENHANCED;
+        setCurrentNxsTier(activeTier);
+    }, [nxsCommittedBigInt, NXS_FEE_TIERS]);
+
+    useEffect(() => { // Conceptual: Update estimated output tier preview
+        // MVP_TODO_LATER: This would ideally call a non-transactional backend endpoint for a more accurate preview
+        // For now, it's a simple placeholder based on NXS tier and if inputs are present
+        const filledSlots = inputNfts.filter(n => n).length;
+        if (filledSlots < MAX_INPUT_NFTS_FORGE || nxsCommittedBigInt < NXS_FEE_TIERS.STANDARD.minNxs) {
+            setEstimatedOutputTier("Awaiting Inputs...");
+            return;
+        }
+        // Simple estimation based on NXS tier for now
+        setEstimatedOutputTier(`${currentNxsTier.label} Tier Potential`);
+        // TODO: Call a conceptual `estimateGas()` function from your forgeContractService
+        setEstimatedGas("~0.002 RON (Est.)")
+
+    }, [inputNfts, nxsCommittedBigInt, currentNxsTier, NXS_FEE_TIERS.STANDARD.minNxs]);
+
+    // --- Handlers (as detailed in turn 82, adapted for React) ---
+    const handleNftSlotClick = (index) => { /* Open NftSelectorModal */ 
+        if(!connectedAddress) { setStatus({message:"Connect wallet", type:"error"}); return; }
+        setActiveSlotIndex(index);
+        // TODO: setUserOwnedNftsForModal(await nftService.fetchUserNfts(connectedAddress, /*filters*/));
+        setUserOwnedNftsForModal([ /* Mock data */ ]);
+        setIsNftSelectorOpen(true);
+    };
+    const handleNftSelectedInModal = (nft) => { /* Update inputNfts state */ };
+    const handleRemoveNft = (index, e) => { /* Update inputNfts state */ };
+    const handleNxsInputChange = (e) => { /* Update nxsCommittedUiAmount & BigInt */ };
+    const handleNxsTierButtonClick = (tierMinNxs) => {
+        setNxsCommittedBigInt(tierMinNxs);
+        setNxsCommittedUiAmount(ethers.formatUnits(tierMinNxs, NXS_DECIMALS));
+    };
+    const handleOpenPriorityModal = () => { /* Open PriorityTraitModal */ };
+    const handlePriorityTraitSelectedInModal = (nft, trait) => { /* Update selectedPriorityTrait state */ };
+    const handleClearPriorityTrait = () => setSelectedPriorityTrait(null);
+    
+    const needsNxsApproval = useMemo(() => nxsCommittedBigInt > BigInt(0) && nxsCommittedBigInt > nxsAllowance, [nxsCommittedBigInt, nxsAllowance]);
+
+    const handleApproveNXS = async () => { /* Call forgeContractService.approveNxs */ };
+    const handleRequestForge = async () => { 
+        /* 1. Validations
+        2. Construct params for smart contract:
+           - inputNftIdentifiers (array of { contractAddress, tokenId (as BigInt) })
+           - nxsCommittedBigInt
+           - prioritizedAttributeForContract ({ inputNftIndex, traitType (bytes32), traitValue (string) })
+           - prioritizedAttributeProvided (boolean)
+        3. Call forgeContractService.requestForge(params, signer)
+        4. Handle tx response, update status, listen for backend/oracle.
+        */
+       console.log("TODO: Implement handleRequestForge");
+       setStatus({message: "Forge requested! Waiting for Oracle...", type:"loading", txHash:"0xsimulated..."});
+    };
+    
+    // --- JSX (reflecting the structure from turn 81 with dynamic NXS tiers etc.) ---
+    return (
+        <div className="font-inter">
+            {/* Conceptual Header & Nav */}
+            {/* <Header /> */}
+            {/* <ForgeSubNav active="forge" /> */}
+
+            <main className="container mx-auto px-4 py-8">
+                <h1 className="section-title text-3xl md:text-4xl text-center mb-10 !border-accent-magenta">The Forging Altar</h1>
+                 {!connectedAddress && <button onClick={connectWallet} className="btn btn-cyber-primary mx-auto block mb-6">Connect Wallet to Begin</button>}
+
+                {connectedAddress && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                        {/* Left Panel: Input NFTs & Priority Trait (as per turn 81/82 JSX) */}
+                        <section className="md:col-span-2 space-y-6">
+                            {/* ... NFT Slots Display ... */}
+                            {/* ... Priority Trait Selector UI ... */}
+                        </section>
+
+                        {/* Right Panel: NXS Commitment, Preview, Actions (as per turn 81/82 JSX) */}
+                        <section className="md:col-span-1 space-y-6">
+                            <div className="card-cyber p-6"> {/* NXS Commitment */}
+                                <h2 className="section-title text-xl mb-4 !border-accent-magenta"><i className="fas fa-fire mr-2"></i>Channel $NXS Power</h2>
+                                <p className="text-xs text-text-secondary mb-3">Your Balance: {ethers.formatUnits(nxsBalance, NXS_DECIMALS)} $NXS</p>
+                                <input type="number" value={nxsCommittedUiAmount} onChange={handleNxsInputChange} className="input-cyber w-full mb-3" placeholder={`Min. ${ethers.formatUnits(NXS_FEE_TIERS.STANDARD.minNxs, NXS_DECIMALS)}`} step="1"/>
+                                <div className="space-y-2 mb-3">
+                                    {Object.values(NXS_FEE_TIERS).map(tier => (
+                                        <button 
+                                            key={tier.label}
+                                            onClick={() => handleNxsTierButtonClick(tier.minNxs)}
+                                            className={`btn w-full !justify-start !text-sm !py-2 ${currentNxsTier.label === tier.label ? 'nxs-tier-button active' : 'btn-cyber-secondary opacity-70'}`}
+                                        >
+                                            {tier.label} ({ethers.formatUnits(tier.minNxs, NXS_DECIMALS)} $NXS) - <span className="italic text-xs ml-1 normal-case">{tier.effect}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-sm"><strong>Selected $NXS Tier:</strong> <span className="text-accent-magenta font-orbitron">{currentNxsTier.label}</span></p>
+                            </div>
+                            {/* ... Preview Section ... */}
+                            {/* ... Action Buttons (Approve NXS, Initiate Forge) ... */}
+                        </section>
+                    </div>
+                )}
+                {/* ... Status Message Display ... */}
+            </main>
+
+            {/* Modals would be separate components, e.g.: */}
+            {/* <NftSelectorModal isOpen={isNftSelectorOpen} ... /> */}
+            {/* <PriorityTraitModal isOpen={isPrioritySelectorOpen} ... /> */}
+        </div>
+    );
+}
+// export default ForgePage;
