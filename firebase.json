@@ -1,0 +1,50 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json" // You might need to define indexes later
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.map" // Exclude .map files from deployment
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "runtime": "nodejs18" // Or your preferred supported Node.js runtime
+    }
+  ],
+  "hosting": {
+    "public": "frontend_forge_ui/build", // TODO: Adjust to your React app's build output folder
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/forgeEvent", // Example: Endpoint for processing ForgeRequested events
+        "function": "processForgeEventHandler" 
+      },
+      // TODO: Add other API rewrites if needed (e.g., for status checks, admin functions)
+      {
+        "source": "**",
+        "destination": "/index.html" // For your React Single Page Application (SPA)
+      }
+    ]
+  },
+  "emulators": {
+    // TODO: Configure emulators for local development (functions, firestore, auth, hosting)
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8080 },
+    "hosting": { "port": 5000 },
+    "ui": { "enabled": true, "port": 4000 }
+  }
+}
