@@ -1,15 +1,15 @@
 // frontend_forge_ui/src/App.jsx
 import React from 'react';
 // import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-// import WalletProvider from './contexts/WalletContext'; // Assuming a WalletContext
-// import ForgeHomePage from './pages/ForgeHomePage';
-// import ForgePage from './pages/ForgePage'; // This will be the more fleshed-out version
-// import MyCreationsPage from './pages/MyCreationsPage';
-// import ItemDetailPage from './pages/ItemDetailPage';
-// import ForgeGuidePage from './pages/ForgeGuidePage';
+// import WalletProvider from './contexts/WalletContext';
 // import Header from './components/common/Header';
 // import Footer from './components/common/Footer';
 // import GlobalMessageModal from './components/common/GlobalMessageModal';
+// import ForgeHomePage from './pages/ForgeHomePage';
+// import ForgePage from './pages/ForgePage'; // Feature-rich version
+// import MyCreationsPage from './pages/MyCreationsPage';
+// import ItemDetailPage from './pages/ItemDetailPage';
+// import ForgeGuidePage from './pages/ForgeGuidePage';
 
 function App() {
   return (
@@ -22,9 +22,8 @@ function App() {
     //           <Route path="/" element={<ForgeHomePage />} />
     //           <Route path="/forge" element={<ForgePage />} />
     //           <Route path="/my-creations" element={<MyCreationsPage />} />
-    //           <Route path="/creation/:contractAddress/:tokenId" element={<ItemDetailPage />} /> {/* Example route with params */}
+    //           <Route path="/creation/:contractAddress/:tokenId" element={<ItemDetailPage />} />
     //           <Route path="/guide" element={<ForgeGuidePage />} />
-    //           {/* TODO: Add Not Found Page */}
     //         </Routes>
     //       </main>
     //       <Footer />
@@ -34,12 +33,10 @@ function App() {
     // </WalletProvider>
     <div className="font-inter bg-bg-deep-space text-text-primary min-h-screen">
       <p className="p-5 text-center">
-        Conceptual App.jsx: Setup React Router & Global Context (e.g., WalletProvider).<br/>
-        The ForgePage component below is the more feature-rich version.
+        Conceptual App.jsx: Setup React Router & Global Context. <br/>
+        ForgePage (feature-rich) is the main interactive component.
       </p>
-      {/* For direct testing of ForgePage, you might temporarily render it here, 
-          but proper routing and context providers are needed for full app. */}
-      {/* <ForgePage />  */}
+      {/* You would render <ForgePage /> through your routing setup */}
     </div>
   );
 }
