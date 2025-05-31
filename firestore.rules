@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Stores status/details of forge requests - written by backend, read by frontend for status.
+    match /forgeRequests/{requestId} {
+      allow read: if true; // Allow frontend to read status
+      // Allow create/update only by your authenticated backend/admin functions
+      allow write: if request.auth != null; // TODO: Secure this using custom claims or service account auth
+    }
+
+    // Stores collection interpretation rules, rarity scores, etc., read by backend functions.
+    // Can be updated via Firebase console or a secure admin panel.
+    match /forgeConfiguration/{configDocId} {
+      allow read: if true; // Backend functions need to read this
+      allow write: if request.auth != null; // TODO: Secure: Only allow admin roles to update
+    }
+
+    // Stores leaderboard data - written by backend, read by frontend.
+    match /forgeLeaderboard/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null; // TODO: Secure: Only backend updates
+    }
+    
+    // Default deny all for other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
