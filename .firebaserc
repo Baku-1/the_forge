@@ -1,0 +1,5 @@
+{
+  "projects": {
+    "default": "kingdom-koders-firebase-project-id" // TODO: Replace with your Firebase Project ID
+  }
+}
